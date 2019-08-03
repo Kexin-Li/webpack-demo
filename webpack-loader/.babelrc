@@ -1,0 +1,7 @@
+{
+  "presets": ["@babel/env", "@babel/react"],
+  "plugins": [
+    // 作用是在将 ES6 转换为 ES5 的过程中减少冗余代码
+    "@babel/plugin-transform-runtime"
+  ]
+}
