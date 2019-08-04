@@ -3,7 +3,16 @@ const path = require('path');
 const jsLoader = {
   test: /\.js$/,
   include: path.resolve(__dirname, 'src'),
-  use: ['babel-loader?cacheDirectory']
+  use: [
+    'babel-loader?cacheDirectory',
+    {
+      loader: './loader/simpleLoader.js',
+      options: {
+        一: 'one',
+        二: 'two'
+      }
+    }
+  ]
 };
 
 const lessLoader = {

@@ -1,71 +1,175 @@
-# Webpack 优化篇
+# Webpack 配置篇
 
-优化分为优化开发体验和优化输出质量两部分。
+## Entry
 
-## 优化开发体验
+- context：不明白这是干什么的。不明白什么叫逃离 CMD。
+- Entry 类型： - 字符串 `string` - 字符串数组 `[string]` - 对象 `object {<key>: string | [string]}` - 返回上述三种类型的函数，可以是同步函数也可以是异步函数。
 
-目的在于提升开发效率。
+## Output
 
-1. 优化构建速度
-   - 缩小文件搜索范围
-   - 使用 DllPlugin
-   - 使用 HappyPack
-   - 使用 ParallelUglifyPlugin
-2. 优化使用体验
-   - 使用自动刷新
-   - 开启模块热更新
+output 是一个 Object，里面有如下配置项：
 
-### 缩小文件搜索范围
+- filename：配置输出文件的名称，为 string 类型。可写死也可配置成 hash 后的名称。
+- chunkFilename：配置无入口的 Chunk 在输出时的文件名称。比如懒加载的模块。
+- path：配置输出文件存放在本地的目录，必须是绝对路径。
+- publicPath：配置发布到线上资源的 URL 前缀，为 string 类型。
+- crossOriginLoading：Webpack 输出的代码如果需要异步加载，而异步加载是通过 JSONP 实现的。JSONP 的原理是动态地向 HTML 中插入一个 script 标签去异步加载资源。这一项是用于配置异步插入的这个标签的 croseorigin 值。通常用设置 crossorigin 来获取异步加载的脚本执行时的详细错误信息。【不是很明白这是在干嘛】
+- libraryTarget 和 library：【不是很明白这是在干嘛】
+- libraryExport：【不是很明白这是在干嘛】
 
-Webpack 从 Entry 出发，递归解析文件。在遇到导入语句时 webpack 会做两件事：
+## Module
 
-1. 根据导入语法查找文件。
-2. 根据找到的文件后缀，使用 Loader 处理文件。
+- rules
+- noParse
+- parser
+- …
 
-优化方向：
+### Loader
 
-1. 尽快找到文件
-2. Loader 处理尽量少的文件
+Module 模块主要用来配置 Loader。具体来说配置在 Module 的 rules 模块中。配置规则如下：
 
-优化方法：
+1. **条件匹配**：通过 `test` ，`include` ，`exclude` 三个配置项来命中 Loader 需要处理的文件。
+2. **应用规则**：通过 `use` 配置项来给命中文件应用 Loader。可以只应用一个 Loader，也可以应用一组 Loader。也可以给 Loader 传参数，可以是 query 的方式传，也可以是 options 对象的方式传。
+3. **执行顺序**：当应用了一组 Loader 时，默认的执行顺序是从右到左。也可以使用 `enforce` 选项来让其中一个 Loader 的执行顺序放到最前面或者最后面。
 
-1. 优化 Loader 配置，使用 include, exclude 配置项缩小处理的文件范围。
-2. 优化 `resolve.modules` 配置，给定 node_modules 的绝对路径。
-3. 优化 `resolve.mainFields` 配置，给定用于 target 坏境的入口文件。在 tp-camp 中，由于服务端和客户端都用的同一份 webpack 配置，所以这个配置项没法优化。
-4. 优化 `resolve.extensions` 配置，一是 extensions 配置列表不宜过长，因为越长会造成尝试的次数越多；二是频率出现最高的文件后缀要优先放前面；三是在导入语句时要尽可能带上后缀。
-5. 优化 `module.noParse` 配置，完整的 `react.min.js` 就没有采用模块化，因此可以忽略对 `react.min.js` 的解析。
+```javascript
+const jsLoader = {
+  test: /\.js$/,
+  include: path.resolve(__dirname, 'src'),
+  use: ['babel-loader?cacheDirectory']
+};
+```
 
-### 使用 DllPlugin【回头再看】
+### noParse
 
-// TODO
+这一项可以让 Webpack 忽略对没有采用模块化编程的文件的递归解析和处理，从而提高构建性能。因此被忽略的文件不应该包括 import，require，define 等模块化语句。
 
-### 使用 HappyPack
+比如忽略 jquery：
 
-使用 HappyPack 能够让 webpack 发挥多核 CPU 电脑的威力，在同一时刻处理多个任务，提高构建速度。
+```javascript
+module: {
+  noParse: /jquery/;
+}
+```
 
-HappyPack 把任务分解给多个子进程去并发的执行，子进程处理完后再把结果发送给主进程。由于 JavaScript 是单线程模型，因此想要发挥多核 CPU 的能力，只能通过多进程去实现，而无法通过多线程实现。
+### parser
 
-### 使用 ParallelUglifyPlugin
+parser 属性能够更细粒度的配置哪些模块语法要解析，哪些不解析。和 noParse 配置项的区别是 parser 精确到语法，noParse 只精确到文件。
 
-使用 ParallelUglifyPlugin 是为了使用多进程并行压缩代码，是 UglifyJS 的多进程版本。使用 ParallelUglifyPlugin 处理多个 JavaScript 文件时，会开启多个子进程，把对多个文件的压缩工作分配给多个子进程去完成，每个子进程还是通过 UglifyJS 去压缩代码，但是变成了并行去执行。
+## Resolve
 
-What’s different between `webpack-parallel-uglify-plugin` and `uglifyjs-webpack-plugin` parallel option.
+Resolve 配置了 Webpack 如何寻找模块所对应的文件。
 
-## 优化输出质量
+### alias
 
-目的在于给用户呈现体验更好的网页。优化输出质量的本质是优化构建输出的要发布到线上的代码。
+该配置项通过别名来把原导入路径映射成一个新的导入路径。
 
-1. 减少用户能感知的加载时间，即首屏加载时间。
-   - 区分环境
-   - 压缩代码
-   - CDN 加速
-   - 使用 Tree Shaking
-   - 提取公共代码
-   - 按需加载
-2. 提升流畅度
-   - 使用 Prepack
-   - 开启 Scope Hoisting
+### mainFields
 
-### CDN 加速
+有的第三方类库会根据不同环境提供几份代码，比如在 ant-design 组件库的 package.json 文件中指定了 ES5 和 ES6 的入口地址：
+[image:7C73A893-BB58-41E3-9B15-F73986CC117B-762-00000150136FDC53/4F77D9FF-66B3-4097-8E92-00F277125F5B.png]
 
-CDN 的作用就是加速网络传输，减少用户在首次打开网页时的加载等待。
+webpack 在没有配置 target 属性，或者 target 属性配置为 webworker 或者 web 时的 mainFields 默认值为：
+
+```javascript
+mainFields: ['browser', 'module', 'main'];
+```
+
+当 target 配置为 node 时的 mainFields 为：
+
+```javascript
+mainFields: ['module', 'main'];
+```
+
+### extensions
+
+在导入语句没有带文件后缀时，webpack 会根据 extensions 配置项来给文件自动带上后缀，再去尝试访问文件是否存在。例如有如下配置：
+
+```javascript
+extensions: ['.js', '.vue', '.json'];
+```
+
+当 webpack 遇到 `import xx from 'xx'` 时，首先会去寻找 `xx.js` 文件，如果不存在就去寻找 `xx.vue` 文件，以此类推。
+
+### modules
+
+配置了 webpack 应该去哪些目录下寻找第三方模块，默认的只会去 `node_modules` 目录下寻找。例如有如下配置：
+
+```javascript
+modules: ['./src/components', 'node_modules'];
+```
+
+当 webpack 遇到 `import button from 'button'` 时会优先去 `./src/components` 目录下搜索，如果没找到再去 node_modules 搜索。
+
+【🤔️ 疑问来了】
+那这个 modules 配置项和 alias 配置项有啥区别？可能实现的方式不一样，比如 alias 是解析到 import 语句时将目标路径替换成别名路径，而 modules 配置的是解析到 import 语句时搜索文件的方式。但我觉得他们最终达到的效果是一样的。
+
+那我该什么时候用 alias 什么时候用 modules？
+
+### enforceExtension
+
+enforceExtension 如果配置为 true，那么所有导入的语句都必须要带文件后缀。
+
+### enforceModuleExtension【不明白这是要干嘛】
+
+enforceModuleExtension 和 enforceExtension 作用类似，但 enforceModuleExtension 只对 node_modules 下的模块生效。enforceModuleExtension 通常搭配 enforceExtension 使用，在
+enforceExtension:true 时，因为安装的第三方模块中大多数导入语句没带文件后缀， 所以这时通过配置 enforceModuleExtension:false 来兼容第三方模块。
+
+## Plugin
+
+Plugin 用于扩展 webpack 的功能。
+
+Webpack 接入 plugin 很简单，就是在 plugins 配置项中传入数组，数组的每一项都是一个 plugin 实例。难点在于搞懂 plugin 本身提供的配置项。
+
+## devServer【回头细看】
+
+在配置文件中配置 `devServer` 项可以改变 DevServer 的默认行为。同时，由于这些功能都是 DevServer 提供的，webpack 并不认识他们。因此，只有在使用了 DevServer 去启动 Webpack 时这些配置才会生效。
+
+何为 DevServer？DevServer 的存在是为了提高开发效率。DevServer 会启动一个 http 服务器用于网页请求，同时会帮助启动 webpack，接收 webpack 发出的文件变更信号，通过 WebSocket 协议自动刷新网页做到实时预览。
+
+有了 DevServer，我们在开发中可以完成：
+
+1. 提供 HTTP 服务器而不是使用本地文件预览。
+2. 监听文件的预览并做到自动刷新，完成实时预览。
+3. 支持 source map，方便调试。
+
+### hot
+
+`hot` 配置能够启动模块热更新功能。即：当模块更新时不用刷新整个网页，而只替换掉更新的模块来达到实时预览的效果。
+
+### inline
+
+inline 配置项用于配置实时预览功能采用哪种方式。如果开启，则会在页面注入一个代理客户端，通过 DevServer 与客户端的沟通来实时刷新页面。如果关闭，则会通过 iframe 的方式运行网页，当构建完成时通过刷新 iframe 来实现实时预览。默认开启。
+
+### historyApiFallback【不明白这要干嘛】
+
+### contentBase【不明白这要干嘛】
+
+## 其他配置项
+
+### target
+
+JS 代码目前能运行的环境越来越多，从浏览器到 Node.js，这些运行在不同环境中的 JS 代码存在一些差异，配置 target 可以让 webpack 构建出针对不同环境的代码。target 可选为：
+
+- web
+- node
+- async-node
+- webworker
+- electron-main
+- electron-renderer
+
+### DevTool
+
+devTool 配置了 webpack 如何生成 source map，默认是 false。
+
+### Externals
+
+Externals 用来告诉 webpack 要构建的代码中哪些模块不用打包。
+
+## 总结
+
+- 想让源文件加入到 webpack 构建流程中，配置 `Entry` 。
+- 想自定义输出文件的位置和名称，配置 `output` 。
+- 想自定义寻找依赖模块时的策略，配置 `resolve` 。
+- 想自定义解析和转换的策略，配置 `module` ，通常是配置 `module.rules` 里的 Loader。
+- 其他大部分功能，需要通过 Plugin 实现，配置 `plugin` 。
