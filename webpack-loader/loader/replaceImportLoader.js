@@ -38,32 +38,21 @@ function replaceImport(source, options = {}) {
     console.log(option);
 
     const {
-      lib,
       libDir = 'lib', // lib dir in npm
-      camel2,
-      existCheck = fileExistInNpm,
-      componentDirMap = getComponentDirMap(lib)
+      existCheck = fileExistInNpm
     } = option;
     // 需要导入的组件列表
     //['Button', 'Alert', 'Card']
     importComponents = removeComment(importComponents).split(',');
 
-    console.log(importComponents);
-
     let ret = '';
-    importComponents.map(function(componentName, index) {
+    importComponents.map(function(componentName) {
       // 如果组件名称为空就直接忽略
       componentName = componentName.trim();
       if (componentName.length === 0) return;
 
       // 组件的入口目录路径
-      let componentDirPath;
-      if (typeof componentDirMap[componentName] === 'string') {
-        // 如果在 map 配置了针对这个组件名称的入口目录映射，就优先采用映射
-        componentDirPath = path.join(libDir, componentDirMap[componentName]);
-      } else {
-        componentDirPath = path.join(libDir, tranCamel2(componentName, camel2));
-      }
+      const componentDirPath = path.join(libDir, componentName);
 
       console.log('componentDirPath', componentDirPath);
 
@@ -80,8 +69,6 @@ function replaceImport(source, options = {}) {
         injectComponent(importFrom);
       }
     });
-
-    console.log('ret', ret);
     return ret;
   });
   console.log(newSource);
