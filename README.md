@@ -3,7 +3,7 @@
 ## Projects
 
 - [webpack react 工程配置](./webpack-init/README.md)
-- [手写一个 webpack loader](./webpack-loader/README.md)
+- [编写一个 webpack loader](./webpack-loader/README.md)
 
 ## Documents
 
