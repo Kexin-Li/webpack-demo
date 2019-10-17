@@ -1,4 +1,5 @@
 const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -27,12 +28,16 @@ module.exports = {
   output: {
     filename: '[name].[hash].js',
     chunkFilename: '[name].[chunkhash].js',
-    path: path.resolve(__dirname, 'build')
+    path: path.resolve(__dirname, 'dist')
   },
   module: {
     rules: [jsLoader, lessLoader]
   },
   plugins: [
+    new HtmlWebpackPlugin({
+      title: 'demo',
+      template: './index.html'
+    }),
     // this plugin should be only used on production build
     // and without `style-loader` in the loaders chain
     new MiniCssExtractPlugin({

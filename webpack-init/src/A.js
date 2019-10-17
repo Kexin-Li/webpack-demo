@@ -1,6 +1,5 @@
 import React from 'react';
-
-const C = React.lazy(() => import('./C'));
+import C from './C';
 
 const A = () => {
   return (
